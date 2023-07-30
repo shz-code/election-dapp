@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.4.22 <0.8.0;
+pragma solidity ^0.8.0;
 
 contract Election {
     // Model a Candidate
@@ -21,15 +21,13 @@ contract Election {
 
     // Read/write candidates
     mapping(uint => Candidate) public candidates;
-    mapping(address => bool) public votes;
-    
 
     // Store Candidates Count
     uint public candidatesCount;
 
-    constructor() public {
-        addCandidate("Candidate 1");
-        addCandidate("Candidate 2");
+    constructor() {
+        addCandidate("Satoshi Nakamoto");
+        addCandidate("Shinchan Nohara");
     }
 
     function addCandidate(string memory _name) public {

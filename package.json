@@ -1,6 +1,6 @@
 {
   "name": "election",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Simple DApp that allows voting of 2 candidates within specified network",
   "main": "truffle.js",
   "directories": {

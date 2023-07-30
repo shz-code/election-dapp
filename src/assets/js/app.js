@@ -1,3 +1,11 @@
+let listenerActivate = false;
+
+const handleAlert = (type,msg) => {
+  return `<div class="alert alert-${type}" role="alert">
+            ${msg}
+          </div>`
+}
+
 const App = {
   web3Provider: null,
   contracts: {},
@@ -29,23 +37,28 @@ const App = {
       App.contracts.Election.setProvider(App.web3Provider);
 
       App.listenForEvents();
-      
-      return App.render();
+
+      App.render();
     });
   },
 
   render: async () => {
     const loader = $("#loader");
     const content = $("#content");
+    const candidatesResults = document.querySelector("#candidatesResults");
+    const candidatesSelect = document.querySelector("#candidatesSelect");
 
     loader.show();
     content.hide();
+
+    candidatesResults.innerHTML = "";
+    candidatesSelect.innerHTML = "";
 
     // Load account data
     web3.eth.getCoinbase((err, account) => {
       if (err === null) {
         App.account = account;
-        $("#accountAddress").html("Your Account: " + account);
+        $("#accountAddress").html(account);
       }
     });
 
@@ -53,11 +66,8 @@ const App = {
     const electionInstance = await App.contracts.Election.deployed();
     const candidateCount = await electionInstance.candidatesCount();
 
-    const candidatesResults = document.querySelector("#candidatesResults");
-    const candidatesSelect = document.querySelector("#candidatesSelect");
-
-    candidatesResults.innerHTML = "";
-    candidatesSelect.innerHTML = "";
+    let winnerCk = -1;
+    let winnerName = "";
 
     for (let i = 1; i <= candidateCount; i++) {
       const candidate = await electionInstance.candidates(i);
@@ -65,18 +75,32 @@ const App = {
       const name = candidate[1];
       const voteCount = candidate[2];
 
+      // Check for winner
+      if(winnerCk < Number(voteCount))
+      {
+        winnerCk = Number(voteCount);
+        winnerName = name;
+      }
+      else if(winnerCk === Number(voteCount))
+      {
+        winnerName = "Tied";
+      }
+
       candidatesResults.innerHTML += `<tr><th>${id}</th><td>${name}</td><td>${voteCount}</td></tr>`;
       candidatesSelect.innerHTML += `<option value='${id}'>${name}</ option>`;
     }
 
+    $("#currentWinner").html(winnerName);
     const flag = await electionInstance.voters(App.account);
 
     if (flag) $("form").hide();
 
     loader.hide();
     content.show();
+    listenerActivate = true;
   },
   castVote: async () => {
+    event.preventDefault();
     $("#content").hide();
     $("#loader").show();
     try {
@@ -86,28 +110,27 @@ const App = {
     } catch (err) {
       console.log(err);
     }
-    // return App.render();
   },
   listenForEvents: async () => {
     const electionInstance = await App.contracts.Election.deployed();
-    electionInstance
-      .votedEvent(
-        {},
-        {
-          fromBlock: 0,
-          toBlock: "latest",
-        }
-      )
-      .watch((err, event) => {
-        console.log("event triggered", event);
-        // Reload when a new vote is recorded
+   
+    electionInstance.votedEvent({}, (err, event) => {
+      // Reload when a new vote is recorded
+      // Trigger new render only when the initial load is complete
+      if (listenerActivate) {
         App.render();
-      });
+        $("#notification").html(handleAlert("dark",`New vote casted to candidate ${event.args._candidateId.toNumber()}`));
+
+        setTimeout(()=>{
+          $("#notification").html("");
+        },5000);
+      }
+    });
   },
 };
 
 $(() => {
-  $(window).load(function () {
+  $(window).load(() => {
     App.init();
   });
 });
