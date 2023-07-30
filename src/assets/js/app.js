@@ -1,10 +1,13 @@
 let listenerActivate = false;
 
-const handleAlert = (type,msg) => {
-  return `<div class="alert alert-${type}" role="alert">
-            ${msg}
-          </div>`
-}
+const handleAlert = (type, msg) => {
+  $("#notification").html(`<div class="alert alert-${type}" role="alert">
+      ${msg}
+    </div>`);
+  setTimeout(() => {
+    $("#notification").html("");
+  }, 5000);
+};
 
 const App = {
   web3Provider: null,
@@ -76,13 +79,10 @@ const App = {
       const voteCount = candidate[2];
 
       // Check for winner
-      if(winnerCk < Number(voteCount))
-      {
+      if (winnerCk < Number(voteCount)) {
         winnerCk = Number(voteCount);
         winnerName = name;
-      }
-      else if(winnerCk === Number(voteCount))
-      {
+      } else if (winnerCk === Number(voteCount)) {
         winnerName = "Tied";
       }
 
@@ -103,27 +103,32 @@ const App = {
     event.preventDefault();
     $("#content").hide();
     $("#loader").show();
+
     try {
       const candidateId = $("#candidatesSelect").val();
       const electionInstance = await App.contracts.Election.deployed();
+
+      // const eth = web3._extend.utils.toWei("5","ether");
       await electionInstance.vote(candidateId, { from: App.account });
+
     } catch (err) {
-      console.log(err);
+      // Catch Error
+      App.render();
+      handleAlert("danger", `Vote cancelled by user`);
     }
   },
   listenForEvents: async () => {
     const electionInstance = await App.contracts.Election.deployed();
-   
+
     electionInstance.votedEvent({}, (err, event) => {
       // Reload when a new vote is recorded
       // Trigger new render only when the initial load is complete
       if (listenerActivate) {
         App.render();
-        $("#notification").html(handleAlert("dark",`New vote casted to candidate ${event.args._candidateId.toNumber()}`));
-
-        setTimeout(()=>{
-          $("#notification").html("");
-        },5000);
+        handleAlert(
+          "dark",
+          `New vote casted to candidate ${event.args._candidateId.toNumber()}`
+        );
       }
     });
   },

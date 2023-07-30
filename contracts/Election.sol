@@ -14,6 +14,7 @@ contract Election {
         string name;
         address user;
     }
+    
     mapping(address => bool) public voters;
 
     event votedEvent(uint indexed _candidateId);
